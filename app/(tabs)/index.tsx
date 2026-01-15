@@ -1,98 +1,159 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Accelerometer } from 'expo-sensors';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTasks } from '../../context/TaskContext';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { visibleTasks, loading, syncing, isOnline, addTask, toggleTask, deleteTask, clearCompleted, syncNow } = useTasks();
+  const [newTask, setNewTask] = useState('');
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
+  // shake => ryd færdige opgaver
+  useEffect(() => {
+    const sub = Accelerometer.addListener(data => {
+      const total = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
+      if (total > 2.5) {
+        const hasCompleted = visibleTasks.some(t => t.is_completed);
+        if (hasCompleted) {
+          Alert.alert('Rystelse registreret', 'Vil du slette alle færdige opgaver?', [
+            { text: 'Annuller', style: 'cancel' },
+            { text: 'Slet', style: 'destructive', onPress: clearCompleted },
+          ]);
+        }
+      }
+    });
+    Accelerometer.setUpdateInterval(400);
+    return () => sub.remove();
+  }, [clearCompleted, visibleTasks]);
+
+  const onAdd = () => {
+    addTask(newTask);
+    setNewTask('');
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={[styles.content, { paddingHorizontal: isLandscape ? 80 : 20 }]}>
+        <FlatList
+          data={visibleTasks}
+          keyExtractor={item => item.localId}
+          refreshControl={<RefreshControl refreshing={syncing} onRefresh={syncNow} />}
+          ListHeaderComponent={
+            <View style={{ marginBottom: 12 }}>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Skriv ny opgave..."
+                  value={newTask}
+                  onChangeText={setNewTask}
+                  onSubmitEditing={onAdd}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.addButton} onPress={onAdd}>
+                  <Text style={styles.addButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.statusRow}>
+                <Text style={styles.statusText}>
+                  {isOnline ? '🟢 Online' : '🔴 Offline'} • {syncing ? 'Synkroniserer…' : 'Klar'}
+                </Text>
+                <TouchableOpacity style={styles.syncButton} onPress={syncNow} disabled={!isOnline || syncing}>
+                  <Text style={styles.syncButtonText}>Synk</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.hint}>📳 Ryst telefonen for at rydde færdige opgaver</Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.cardRow}>
+              <TouchableOpacity style={styles.card} onPress={() => toggleTask(item.localId)}>
+                <Text style={[styles.taskText, item.is_completed && styles.completedText]}>
+                  {item.is_completed ? '☑️ ' : '⬜ '} {item.title}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteTask(item.localId)}>
+                <Text style={{ fontSize: 16 }}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View style={{ paddingTop: 30 }}>
+              <Text style={{ textAlign: 'center', color: '#888' }}>Ingen opgaver endnu – tilføj en øverst 👆</Text>
+            </View>
+          }
+        />
+
+        <TouchableOpacity style={styles.clearButton} onPress={clearCompleted}>
+          <Text style={styles.clearButtonText}>Ryd færdige opgaver</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  content: { flex: 1, paddingTop: 12 },
+
+  inputRow: { flexDirection: 'row' },
+  input: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  addButton: {
+    backgroundColor: '#007AFF',
+    width: 55,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    marginLeft: 10,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  addButtonText: { color: '#fff', fontSize: 30 },
+
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  statusText: { color: '#666', fontSize: 12 },
+  syncButton: { backgroundColor: '#111', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  syncButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+
+  hint: { textAlign: 'center', color: '#999', marginTop: 10, fontSize: 12 },
+
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  card: { flex: 1, backgroundColor: '#fff', padding: 18, borderRadius: 12, elevation: 2 },
+  taskText: { fontSize: 16, color: '#333' },
+  completedText: { textDecorationLine: 'line-through', color: '#BBB' },
+  deleteBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+
+  clearButton: { marginTop: 8, backgroundColor: '#34C759', padding: 14, borderRadius: 12, alignItems: 'center' },
+  clearButtonText: { color: '#fff', fontWeight: '700' },
 });
