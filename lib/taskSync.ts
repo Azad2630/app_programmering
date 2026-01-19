@@ -16,6 +16,14 @@ function formatSupabaseError(e: any) {
   return parts.join('\n');
 }
 
+function makeBlockedError(action: string) {
+  return new Error(
+    `${action} blev ikke udført i Supabase (0 rækker påvirket).\n` +
+      `Det skyldes næsten altid RLS/policy (manglende tilladelser) eller at rækken ikke findes.\n` +
+      `Tip: slå RLS fra i skoleprojekt: alter table public.tasks disable row level security;`
+  );
+}
+
 export async function pullRemoteTasks(): Promise<RemoteTaskRow[]> {
   const { data, error } = await supabase
     .from('tasks')
@@ -37,17 +45,32 @@ export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]>
   for (const t of local) {
     if (!t.deleted) continue;
 
-    // fjern lokalt uanset hvad
-    next = next.filter(x => x.localId !== t.localId);
-
-    // slet remote hvis vi har remoteId
-    if (t.remoteId) {
-      const { error } = await supabase.from('tasks').delete().eq('id', t.remoteId);
-      if (error) {
-        console.log('SUPABASE DELETE ERROR:\n', formatSupabaseError(error));
-        throw error;
-      }
+    // Hvis den aldrig har været i cloud, kan vi bare fjerne lokalt
+    if (!t.remoteId) {
+      next = next.filter(x => x.localId !== t.localId);
+      continue;
     }
+
+    // Hvis den har remoteId: prøv at slette i cloud først
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', t.remoteId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      console.log('SUPABASE DELETE ERROR:\n', formatSupabaseError(error));
+      throw error;
+    }
+
+    // ✅ Hvis data er null, blev 0 rækker slettet (typisk RLS/policy)
+    if (!data) {
+      throw makeBlockedError('DELETE');
+    }
+
+    // Cloud delete lykkedes -> fjern lokalt
+    next = next.filter(x => x.localId !== t.localId);
   }
 
   // 2) Push ændringer (insert/update)
@@ -55,28 +78,37 @@ export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]>
     if (t.deleted) continue;
     if (t.synced) continue;
 
-    // INSERT (vi sender IKKE updated_at ved insert)
+    // INSERT (send IKKE updated_at)
     if (!t.remoteId) {
       const { data, error } = await supabase
         .from('tasks')
         .insert([{ title: t.title, is_completed: t.is_completed }])
         .select('id,updated_at')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.log('SUPABASE INSERT ERROR:\n', formatSupabaseError(error));
         throw error;
       }
 
+      // ✅ Hvis data er null, blev 0 rækker indsat (typisk RLS/policy)
+      if (!data) {
+        throw makeBlockedError('INSERT');
+      }
+
       const remoteId = (data as any)?.id as number | undefined;
       const updated_at = (data as any)?.updated_at as string | undefined;
+
+      if (!remoteId) {
+        throw new Error('INSERT lykkedes ikke korrekt: mangler id fra Supabase.');
+      }
 
       next = next.map(x =>
         x.localId === t.localId
           ? {
               ...x,
               remoteId,
-              // brug server updated_at så merge ikke “hopper”
+              // brug server updated_at for stabil merge
               updated_at: updated_at ?? x.updated_at,
               synced: true,
             }
@@ -86,17 +118,23 @@ export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]>
       continue;
     }
 
-    // UPDATE (hent updated_at tilbage fra server)
+    // UPDATE (hent updated_at tilbage)
     const { data, error } = await supabase
       .from('tasks')
       .update({ title: t.title, is_completed: t.is_completed })
       .eq('id', t.remoteId)
-      .select('updated_at')
-      .single();
+      .select('id,updated_at')
+      .maybeSingle();
 
     if (error) {
       console.log('SUPABASE UPDATE ERROR:\n', formatSupabaseError(error));
       throw error;
+    }
+
+    // ✅ Hvis data er null, blev 0 rækker opdateret (typisk RLS/policy)
+    // og det er PRÆCIS det der giver “1 sekund og tilbage”.
+    if (!data) {
+      throw makeBlockedError('UPDATE');
     }
 
     const updated_at = (data as any)?.updated_at as string | undefined;
@@ -105,6 +143,7 @@ export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]>
       x.localId === t.localId
         ? {
             ...x,
+            // nu er den RIGTIGT synced
             synced: true,
             updated_at: updated_at ?? x.updated_at,
           }
@@ -124,15 +163,13 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
 
   const merged: LocalTask[] = [];
 
-  // A) Gå lokale igennem først
+  // A) lokale først
   for (const l of local) {
-    // tombstone: behold så den kan push-slettes næste gang
     if (l.deleted) {
       merged.push(l);
       continue;
     }
 
-    // kun lokal (har ikke remoteId endnu)
     if (!l.remoteId) {
       merged.push(l);
       continue;
@@ -140,11 +177,10 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
 
     const r = remoteById.get(l.remoteId);
 
-    // Remote findes ikke længere
     if (!r) {
-      // hvis lokal ikke var synket, så behold og lad den re-insertes
+      // Remote findes ikke længere
+      // Hvis lokal ikke var synced, behold og lad den blive re-insertet senere
       if (!l.synced) merged.push({ ...l, remoteId: undefined });
-      // hvis den var synced og remote er væk => drop
       continue;
     }
 
@@ -154,7 +190,7 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
       continue;
     }
 
-    // Ellers: remote må overskrive hvis den er nyere
+    // Hvis remote er nyere, må den overskrive
     if (isNewer(r.updated_at, l.updated_at)) {
       merged.push({
         localId: l.localId,
@@ -169,7 +205,7 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
     }
   }
 
-  // B) Tilføj remote tasks som ikke findes lokalt
+  // B) remote tasks som ikke findes lokalt
   for (const r of remote) {
     if (localByRemoteId.has(r.id)) continue;
 
@@ -183,7 +219,6 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
     });
   }
 
-  // sortér nyeste først
   merged.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   return merged;
 }

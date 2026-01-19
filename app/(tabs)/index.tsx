@@ -66,8 +66,9 @@ export default function HomeScreen() {
             <View style={{ marginBottom: 12 }}>
               <View style={styles.inputRow}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: 'black' }]}
                   placeholder="Skriv ny opgave..."
+                  placeholderTextColor="black"
                   value={newTask}
                   onChangeText={setNewTask}
                   onSubmitEditing={onAdd}
