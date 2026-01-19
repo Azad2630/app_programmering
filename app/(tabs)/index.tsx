@@ -23,22 +23,45 @@ export default function HomeScreen() {
   const isLandscape = width > height;
 
   // shake => ryd færdige opgaver
+  
+  // useEffect(() => {
+  //   const sub = Accelerometer.addListener(data => {
+  //     const total = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
+  //     if (total > 2.5) {
+  //       const hasCompleted = visibleTasks.some(t => t.is_completed);
+  //       if (hasCompleted) {
+  //         Alert.alert('Rystelse registreret', 'Vil du slette alle færdige opgaver?', [
+  //           { text: 'Annuller', style: 'cancel' },
+  //           { text: 'Slet', style: 'destructive', onPress: clearCompleted },
+  //         ]);
+  //       }
+  //     }
+  //   });
+  //   Accelerometer.setUpdateInterval(400);
+  //   return () => sub.remove();
+  // }, [clearCompleted, visibleTasks]);
   useEffect(() => {
-    const sub = Accelerometer.addListener(data => {
-      const total = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
-      if (total > 2.5) {
-        const hasCompleted = visibleTasks.some(t => t.is_completed);
-        if (hasCompleted) {
-          Alert.alert('Rystelse registreret', 'Vil du slette alle færdige opgaver?', [
+  const sub = Accelerometer.addListener(data => {
+    const xForce = Math.abs(data.x);
+    if (xForce > 1.2) {
+      const hasCompleted = visibleTasks.some(t => t.is_completed);
+      if (hasCompleted) {
+        Alert.alert(
+          'Rystelse registreret',
+          'Vil du slette alle færdige opgaver?',
+          [
             { text: 'Annuller', style: 'cancel' },
             { text: 'Slet', style: 'destructive', onPress: clearCompleted },
-          ]);
-        }
+          ]
+        );
       }
-    });
-    Accelerometer.setUpdateInterval(400);
-    return () => sub.remove();
-  }, [clearCompleted, visibleTasks]);
+    }
+  });
+
+  Accelerometer.setUpdateInterval(300);
+  return () => sub.remove();
+}, [clearCompleted, visibleTasks]);
+
 
   const onAdd = () => {
     addTask(newTask);
