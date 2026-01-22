@@ -23,7 +23,8 @@ export default function HomeScreen() {
   const isLandscape = width > height;
 
   // shake => ryd færdige opgaver
-  
+
+  // dette er til telefon
   // useEffect(() => {
   //   const sub = Accelerometer.addListener(data => {
   //     const total = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
@@ -40,6 +41,8 @@ export default function HomeScreen() {
   //   Accelerometer.setUpdateInterval(400);
   //   return () => sub.remove();
   // }, [clearCompleted, visibleTasks]);
+
+  // dette er til emulator computer
   useEffect(() => {
   const sub = Accelerometer.addListener(data => {
     const xForce = Math.abs(data.x);

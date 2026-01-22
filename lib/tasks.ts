@@ -3,7 +3,7 @@ export type LocalTask = {
   remoteId?: number;
   title: string;
   is_completed: boolean;
-  updated_at: string; // ISO
+  updated_at: string; 
   synced: boolean;
   deleted?: boolean;
 };
