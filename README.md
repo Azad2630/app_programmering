@@ -14,6 +14,13 @@ Appen understøtter **lokal lagring**, **cloud-synkronisering** og fungerer båd
 -  Indstillinger / profil (navn, sync-tilstand)
 -  Shake-funktion (Accelerometer) til at rydde færdige opgaver
 
+## Teknologier brugt
+- React Native
+- Expo
+- TypeScript
+- AsyncStorage
+- Supabase (PostgreSQL + Web API)
+- Expo Sensors (Accelerometer)
 
 # link til google slide
 ### https://docs.google.com/presentation/d/1VPjspnYXcmJkQIXLWnPkcwgzidOP9I9cfwE0J_dygP4/edit?usp=sharing
