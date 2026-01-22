@@ -1,50 +1,26 @@
-# Welcome to your Expo app 👋
+# Huskeliste-app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+En personlig huskeliste-app udviklet i **React Native (Expo)**.  
+Appen understøtter **lokal lagring**, **cloud-synkronisering** og fungerer både **offline og online**.
 
-## Get started
+## Features
+-  Opret, fuldfør og slet opgaver
+-  Dynamisk opgaveliste
+-  Lokal lagring med AsyncStorage
+-  Offline-first funktionalitet
+-  Cloud-synkronisering via Supabase (Web API)
+-  Auto-sync (push-only)
+-  Manuel sync (fuld sync: push + pull)
+-  Indstillinger / profil (navn, sync-tilstand)
+-  Shake-funktion (Accelerometer) til at rydde færdige opgaver
 
-1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+# link til google slide
+### https://docs.google.com/presentation/d/1VPjspnYXcmJkQIXLWnPkcwgzidOP9I9cfwE0J_dygP4/edit?usp=sharing
 
-2. Start the app
+# screenshots
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 
+<img width="300" height="969" alt="PA2_1" src="https://github.com/user-attachments/assets/e5b1a198-9043-426b-856d-19b08838f65f" />
+<img width="300" height="965" alt="PA2_2" src="https://github.com/user-attachments/assets/ddf51efb-2002-4737-9267-1000b5ce71e7" />
+<img width="300" height="964" alt="PA2_3" src="https://github.com/user-attachments/assets/73274888-bd71-4be7-ae7c-39a098e8b9ad" />
