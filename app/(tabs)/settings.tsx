@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { styles } from '../../components/ui/styles/tabs/settings.styles';
 import { useTasks } from '../../context/TaskContext';
 import { loadMeta, resetAllLocalData, saveMeta } from '../../lib/taskStorage';
 
@@ -70,9 +71,7 @@ export default function SettingsScreen() {
         <Switch value={autoSync} onValueChange={setAutoSync} disabled={!cloudSyncEnabled} />
       </View>
 
-      <Text style={styles.note}>
-        Auto-sync er deaktiveret hvis cloud-sync er slået fra.
-      </Text>
+      <Text style={styles.note}>Auto-sync er deaktiveret hvis cloud-sync er slået fra.</Text>
 
       <TouchableOpacity style={[styles.button, { backgroundColor: '#111' }]} onPress={reset}>
         <Text style={styles.buttonText}>Nulstil lokale data</Text>
@@ -80,14 +79,3 @@ export default function SettingsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#fff' },
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 16 },
-  label: { fontSize: 14, marginBottom: 8, color: '#333' },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 10, marginBottom: 14 },
-  button: { backgroundColor: '#34C759', padding: 14, borderRadius: 12, alignItems: 'center', marginBottom: 14 },
-  buttonText: { color: '#fff', fontWeight: '800' },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  note: { marginBottom: 14, fontSize: 12, color: '#666', lineHeight: 18 },
-});

@@ -1,6 +1,11 @@
 import { Stack } from 'expo-router';
 import React from 'react';
+import { LogBox } from 'react-native';
 import { TaskProvider } from '../context/TaskContext';
+
+if (__DEV__) {
+  LogBox.ignoreLogs(['props.pointerEvents is deprecated. Use style.pointerEvents']);
+}
 
 export default function RootLayout() {
   return (
@@ -11,3 +16,4 @@ export default function RootLayout() {
     </TaskProvider>
   );
 }
+

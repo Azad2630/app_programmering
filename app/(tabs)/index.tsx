@@ -4,8 +4,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Platform,
   RefreshControl,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { styles } from '../../components/ui/styles/tabs/home.styles';
 import { useTasks } from '../../context/TaskContext';
 
 export default function HomeScreen() {
@@ -22,49 +23,25 @@ export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  // shake => ryd færdige opgaver
-
-  // dette er til telefon
-  // useEffect(() => {
-  //   const sub = Accelerometer.addListener(data => {
-  //     const total = Math.abs(data.x) + Math.abs(data.y) + Math.abs(data.z);
-  //     if (total > 2.5) {
-  //       const hasCompleted = visibleTasks.some(t => t.is_completed);
-  //       if (hasCompleted) {
-  //         Alert.alert('Rystelse registreret', 'Vil du slette alle færdige opgaver?', [
-  //           { text: 'Annuller', style: 'cancel' },
-  //           { text: 'Slet', style: 'destructive', onPress: clearCompleted },
-  //         ]);
-  //       }
-  //     }
-  //   });
-  //   Accelerometer.setUpdateInterval(400);
-  //   return () => sub.remove();
-  // }, [clearCompleted, visibleTasks]);
-
-  // dette er til emulator computer
   useEffect(() => {
-  const sub = Accelerometer.addListener(data => {
-    const xForce = Math.abs(data.x);
-    if (xForce > 1.2) {
-      const hasCompleted = visibleTasks.some(t => t.is_completed);
-      if (hasCompleted) {
-        Alert.alert(
-          'Rystelse registreret',
-          'Vil du slette alle færdige opgaver?',
-          [
+    if (Platform.OS === 'web') return;
+
+    const sub = Accelerometer.addListener(data => {
+      const xForce = Math.abs(data.x);
+      if (xForce > 1.2) {
+        const hasCompleted = visibleTasks.some(t => t.is_completed);
+        if (hasCompleted) {
+          Alert.alert('Rystelse registreret', 'Vil du slette alle færdige opgaver?', [
             { text: 'Annuller', style: 'cancel' },
             { text: 'Slet', style: 'destructive', onPress: clearCompleted },
-          ]
-        );
+          ]);
+        }
       }
-    }
-  });
+    });
 
-  Accelerometer.setUpdateInterval(300);
-  return () => sub.remove();
-}, [clearCompleted, visibleTasks]);
-
+    Accelerometer.setUpdateInterval(300);
+    return () => sub.remove();
+  }, [clearCompleted, visibleTasks]);
 
   const onAdd = () => {
     addTask(newTask);
@@ -132,7 +109,7 @@ export default function HomeScreen() {
           )}
           ListEmptyComponent={
             <View style={{ paddingTop: 30 }}>
-              <Text style={{ textAlign: 'center', color: '#888' }}>Ingen opgaver endnu – tilføj en øverst 👆</Text>
+              <Text style={{ textAlign: 'center', color: '#888' }}>Ingen opgaver endnu - tilføj en øverst 👆</Text>
             </View>
           }
         />
@@ -144,43 +121,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  content: { flex: 1, paddingTop: 12 },
-
-  inputRow: { flexDirection: 'row' },
-  input: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    width: 55,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  addButtonText: { color: '#fff', fontSize: 30 },
-
-  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-  statusText: { color: '#666', fontSize: 12 },
-  syncButton: { backgroundColor: '#111', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  syncButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-
-  hint: { textAlign: 'center', color: '#999', marginTop: 10, fontSize: 12 },
-
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  card: { flex: 1, backgroundColor: '#fff', padding: 18, borderRadius: 12, elevation: 2 },
-  taskText: { fontSize: 16, color: '#333' },
-  completedText: { textDecorationLine: 'line-through', color: '#BBB' },
-  deleteBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-
-  clearButton: { marginTop: 8, backgroundColor: '#34C759', padding: 14, borderRadius: 12, alignItems: 'center' },
-  clearButtonText: { color: '#fff', fontWeight: '700' },
-});

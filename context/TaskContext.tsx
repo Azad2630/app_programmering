@@ -40,6 +40,7 @@ function makeLocalId() {
 }
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
+  // Section: Core state and refs (refs avoid stale closures during async).
   const [tasks, setTasks] = useState<LocalTask[]>([]);
   const tasksRef = useRef<LocalTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const syncingRef = useRef(false);
 
-  // hvis der kommer nye ændringer mens vi synker, så kører vi igen bagefter
+  // Section: Auto-sync re-run flag if changes happen mid-sync.
   const pendingAutoSyncRef = useRef(false);
 
   const [isOnline, setIsOnline] = useState(true);
@@ -58,14 +59,15 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Section: Derived list used by UI (hide deleted tasks).
   const visibleTasks = useMemo(() => tasks.filter(t => !t.deleted), [tasks]);
 
-  // hold ref opdateret
+  // Section: Keep the ref in sync with state for async access.
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
 
-  // online/offline
+  // Section: Track online/offline state.
   useEffect(() => {
     const unsub = NetInfo.addEventListener(state => {
       setIsOnline(!!state.isConnected);
@@ -73,7 +75,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // init
+  // Section: Initial load from AsyncStorage + optional auto-sync on start.
   useEffect(() => {
     (async () => {
       try {
@@ -99,12 +101,14 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  // Section: Persist helper for tasks array.
   async function persist(next: LocalTask[]) {
     tasksRef.current = next;
     setTasks(next);
     await saveTasks(next);
   }
 
+  // Section: Debounced auto-sync trigger.
   function scheduleAutoSync() {
     if (!autoSync) return;
     if (!cloudSyncEnabled) return;
@@ -115,6 +119,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }, 700);
   }
 
+  // Section: CRUD actions exposed to the UI.
   function addTask(title: string) {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -181,6 +186,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     scheduleAutoSync();
   }
 
+  // Section: Settings toggles stored in meta.
   async function setCloudSyncEnabled(val: boolean) {
     setCloudSyncEnabledState(val);
 
@@ -218,12 +224,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // ✅ Auto-sync = kun PUSH til Supabase (stabilt, overskriver ikke UI)
+  // Section: Auto-sync flow (push-only to avoid overwriting UI).
   async function runAutoSyncPushOnly(silent: boolean) {
     if (!cloudSyncEnabled) return;
     if (!autoSync) return;
 
-    // check online “live” (ikke kun state)
+    // check online "live" (ikke kun state)
     const net = await NetInfo.fetch();
     const onlineNow = !!net.isConnected;
     setIsOnline(onlineNow);
@@ -275,7 +281,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // ✅ Manuel fuld sync (push + pull + merge)
+  // Section: Manual full sync (push + pull + merge).
   async function syncNow() {
     if (!cloudSyncEnabled) {
       Alert.alert('Cloud-sync er slået fra', 'Appen kører kun lokalt lige nu.');
@@ -322,7 +328,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // kør auto-sync når man bliver online igen
+  // Section: When connection is restored, try auto-sync.
   useEffect(() => {
     if (isOnline && autoSync && cloudSyncEnabled) {
       runAutoSyncPushOnly(true).catch(() => {});
@@ -330,6 +336,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, autoSync, cloudSyncEnabled]);
 
+  // Section: Context value exposed to screens.
   const value: TaskCtx = {
     tasks,
     visibleTasks,
@@ -360,3 +367,4 @@ export function useTasks() {
   if (!ctx) throw new Error('useTasks skal bruges inde i <TaskProvider>');
   return ctx;
 }
+

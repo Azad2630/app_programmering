@@ -41,7 +41,7 @@ export async function pullRemoteTasks(): Promise<RemoteTaskRow[]> {
 export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]> {
   let next = [...local];
 
-  // 1) Slet (tombstones)
+  // Section: 1) Deletes (tombstones).
   for (const t of local) {
     if (!t.deleted) continue;
 
@@ -73,7 +73,7 @@ export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]>
     next = next.filter(x => x.localId !== t.localId);
   }
 
-  // 2) Push ændringer (insert/update)
+  // Section: 2) Inserts/updates (push local changes).
   for (const t of next) {
     if (t.deleted) continue;
     if (t.synced) continue;
@@ -132,7 +132,7 @@ export async function pushLocalChanges(local: LocalTask[]): Promise<LocalTask[]>
     }
 
     // ✅ Hvis data er null, blev 0 rækker opdateret (typisk RLS/policy)
-    // og det er PRÆCIS det der giver “1 sekund og tilbage”.
+    // og det er PRÆCIS det der giver "1 sekund og tilbage".
     if (!data) {
       throw makeBlockedError('UPDATE');
     }
@@ -163,7 +163,7 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
 
   const merged: LocalTask[] = [];
 
-  // A) lokale først
+  // Section: A) Walk local tasks first to preserve local-only edits.
   for (const l of local) {
     if (l.deleted) {
       merged.push(l);
@@ -205,7 +205,7 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
     }
   }
 
-  // B) remote tasks som ikke findes lokalt
+  // Section: B) Add remote tasks missing locally.
   for (const r of remote) {
     if (localByRemoteId.has(r.id)) continue;
 
@@ -219,6 +219,8 @@ export function mergeLocalWithRemote(local: LocalTask[], remote: RemoteTaskRow[]
     });
   }
 
+  // Section: C) Sort by most recently updated.
   merged.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   return merged;
 }
+

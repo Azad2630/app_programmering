@@ -14,3 +14,4 @@ export type RemoteTaskRow = {
   is_completed: boolean;
   updated_at: string;
 };
+

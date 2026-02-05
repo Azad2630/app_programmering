@@ -42,3 +42,4 @@ export async function saveMeta(meta: Meta): Promise<void> {
 export async function resetAllLocalData(): Promise<void> {
   await AsyncStorage.multiRemove([TASKS_KEY, META_KEY]);
 }
+
