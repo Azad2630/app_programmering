@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LocalTask } from './tasks';
+import { normalizeLocalTasks, type LocalTask } from './task-types';
 
 const TASKS_KEY = 'dtm_tasks_v1';
 const META_KEY = 'dtm_meta_v1';
@@ -15,7 +15,7 @@ export async function loadTasks(): Promise<LocalTask[]> {
   const raw = await AsyncStorage.getItem(TASKS_KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as LocalTask[];
+    return normalizeLocalTasks(JSON.parse(raw) as LocalTask[]);
   } catch {
     return [];
   }

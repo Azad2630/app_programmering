@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from 'react';
 
-import type { TaskCtx } from './taskContextTypes';
-import { useTaskManager } from './useTaskManager';
+import type { TaskCtx } from './task-context.types';
+import { useTaskManager } from './use-task-manager';
 
 const Ctx = createContext<TaskCtx | null>(null);
 
@@ -12,6 +12,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
 export function useTasks() {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useTasks skal bruges inde i <TaskProvider>');
+  if (!ctx) throw new Error('useTasks must be used within <TaskProvider>.');
   return ctx;
 }

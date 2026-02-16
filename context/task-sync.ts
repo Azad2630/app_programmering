@@ -2,9 +2,10 @@ import NetInfo from '@react-native-community/netinfo';
 import type { MutableRefObject } from 'react';
 import { Alert } from 'react-native';
 
-import { loadMeta, saveMeta } from '../lib/taskStorage';
-import { mergeLocalWithRemote, pullRemoteTasks, pushLocalChanges } from '../lib/taskSync';
-import type { LocalTask } from '../lib/tasks';
+import { loadMeta, saveMeta } from '../lib/task-storage';
+import { mergeLocalWithRemote, pullRemoteTasks, pushLocalChanges } from '../lib/task-sync';
+import type { LocalTask } from '../lib/task-types';
+import type { CloudSyncStatus } from './task-context.types';
 
 type CreateTaskSyncHandlersArgs = {
   getTasks: () => LocalTask[];
@@ -13,6 +14,8 @@ type CreateTaskSyncHandlersArgs = {
   pendingAutoSyncRef: MutableRefObject<boolean>;
   setSyncing: (val: boolean) => void;
   setIsOnline: (val: boolean) => void;
+  setCloudStatus: (val: CloudSyncStatus) => void;
+  setLastSyncError: (val: string | undefined) => void;
   getCloudSyncEnabled: () => boolean;
   setCloudSyncEnabledState: (val: boolean) => void;
   getAutoSync: () => boolean;
@@ -29,6 +32,8 @@ export function createTaskSyncHandlers({
   pendingAutoSyncRef,
   setSyncing,
   setIsOnline,
+  setCloudStatus,
+  setLastSyncError,
   getCloudSyncEnabled,
   setCloudSyncEnabledState,
   getAutoSync,
@@ -37,9 +42,20 @@ export function createTaskSyncHandlers({
   setLastSync,
   nowISO,
 }: CreateTaskSyncHandlersArgs) {
+  function errorMessage(e: any, fallback: string) {
+    const message = typeof e?.message === 'string' ? e.message.trim() : '';
+    return message || fallback;
+  }
+
   async function setCloudSyncEnabled(val: boolean) {
     setCloudSyncEnabledState(val);
-    if (!val) setAutoSyncState(false);
+    if (!val) {
+      setAutoSyncState(false);
+      setCloudStatus('disabled');
+      setLastSyncError(undefined);
+    } else {
+      setCloudStatus('unknown');
+    }
 
     const currentMeta = await loadMeta();
     await saveMeta({
@@ -52,7 +68,7 @@ export function createTaskSyncHandlers({
 
   async function setAutoSync(val: boolean) {
     if (!getCloudSyncEnabled() && val) {
-      Alert.alert('Ikke muligt', 'Slaa Cloud-sync til foerst.');
+      Alert.alert('Not Available', 'Enable cloud sync first.');
       return;
     }
 
@@ -78,7 +94,11 @@ export function createTaskSyncHandlers({
     const net = await NetInfo.fetch();
     const onlineNow = !!net.isConnected;
     setIsOnline(onlineNow);
-    if (!onlineNow) return;
+    if (!onlineNow) {
+      setCloudStatus('unavailable');
+      setLastSyncError('No internet connection.');
+      return;
+    }
 
     if (syncingRef.current) {
       pendingAutoSyncRef.current = true;
@@ -88,12 +108,14 @@ export function createTaskSyncHandlers({
     try {
       syncingRef.current = true;
       setSyncing(true);
+      setLastSyncError(undefined);
 
       const pushed = await pushLocalChanges(getTasks());
       await persist(pushed);
 
       const syncTime = nowISO();
       setLastSync(syncTime);
+      setCloudStatus('connected');
 
       const currentMeta = await loadMeta();
       await saveMeta({
@@ -103,8 +125,11 @@ export function createTaskSyncHandlers({
         autoSync: getAutoSync(),
       });
     } catch (e: any) {
+      setCloudStatus('unavailable');
+      const message = errorMessage(e, 'Unable to push changes to Supabase.');
+      setLastSyncError(message);
       if (!silent) {
-        Alert.alert('Auto-sync fejl', e?.message ?? 'Kunne ikke sende til Supabase');
+        Alert.alert('Auto Sync Error', message);
       }
     } finally {
       syncingRef.current = false;
@@ -119,7 +144,9 @@ export function createTaskSyncHandlers({
 
   async function syncNow() {
     if (!getCloudSyncEnabled()) {
-      Alert.alert('Cloud-sync er slaaet fra', 'Appen koerer kun lokalt lige nu.');
+      setCloudStatus('disabled');
+      setLastSyncError(undefined);
+      Alert.alert('Cloud Sync Disabled', 'The app is currently running in local-only mode.');
       return;
     }
 
@@ -127,7 +154,9 @@ export function createTaskSyncHandlers({
     const onlineNow = !!net.isConnected;
     setIsOnline(onlineNow);
     if (!onlineNow) {
-      Alert.alert('Offline', 'Du er offline - kan ikke synkronisere lige nu.');
+      setCloudStatus('unavailable');
+      setLastSyncError('No internet connection.');
+      Alert.alert('Offline', 'You are offline and cannot sync right now.');
       return;
     }
 
@@ -136,6 +165,7 @@ export function createTaskSyncHandlers({
     try {
       syncingRef.current = true;
       setSyncing(true);
+      setLastSyncError(undefined);
 
       const pushedBase = await pushLocalChanges(getTasks());
       const remote = await pullRemoteTasks();
@@ -145,6 +175,7 @@ export function createTaskSyncHandlers({
 
       const syncTime = nowISO();
       setLastSync(syncTime);
+      setCloudStatus('connected');
 
       const currentMeta = await loadMeta();
       await saveMeta({
@@ -154,7 +185,10 @@ export function createTaskSyncHandlers({
         autoSync: getAutoSync(),
       });
     } catch (e: any) {
-      Alert.alert('Sync-fejl', e?.message ?? 'Kunne ikke synkronisere');
+      setCloudStatus('unavailable');
+      const message = errorMessage(e, 'Unable to sync with Supabase.');
+      setLastSyncError(message);
+      Alert.alert('Sync Error', message);
     } finally {
       syncingRef.current = false;
       setSyncing(false);

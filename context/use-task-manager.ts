@@ -2,12 +2,12 @@
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
 
-import type { LocalTask } from '../lib/tasks';
-import { loadMeta, loadTasks, saveTasks } from '../lib/taskStorage';
-import { createTaskCrudHandlers } from './taskManagerCrud';
-import { createTaskSyncHandlers } from './taskManagerSync';
-import type { TaskCtx } from './taskContextTypes';
-import { useTaskManagerState } from './useTaskManagerState';
+import type { LocalTask } from '../lib/task-types';
+import { loadMeta, loadTasks, resetAllLocalData, saveTasks } from '../lib/task-storage';
+import { createTaskCrudHandlers } from './task-crud';
+import { createTaskSyncHandlers } from './task-sync';
+import type { TaskCtx } from './task-context.types';
+import { useTaskManagerState } from './use-task-manager-state';
 
 function nowISO() {
   return new Date().toISOString();
@@ -30,6 +30,10 @@ export function useTaskManager(): TaskCtx {
     pendingAutoSyncRef,
     isOnline,
     setIsOnline,
+    cloudStatus,
+    setCloudStatus,
+    lastSyncError,
+    setLastSyncError,
     lastSync,
     setLastSync,
     lastSyncRef,
@@ -56,6 +60,8 @@ export function useTaskManager(): TaskCtx {
     pendingAutoSyncRef,
     setSyncing,
     setIsOnline,
+    setCloudStatus,
+    setLastSyncError,
     getCloudSyncEnabled: () => cloudSyncEnabledRef.current,
     setCloudSyncEnabledState,
     getAutoSync: () => autoSyncRef.current,
@@ -65,23 +71,39 @@ export function useTaskManager(): TaskCtx {
     nowISO,
   });
 
-  function scheduleAutoSync() {
+  function scheduleAutoSync(delayMs = 700) {
     if (!autoSyncRef.current) return;
     if (!cloudSyncEnabledRef.current) return;
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       runAutoSyncPushOnly(false).catch(() => {});
-    }, 700);
+    }, delayMs);
   }
 
-  const { addTask, toggleTask, deleteTask, clearCompleted } = createTaskCrudHandlers({
+  const { addTask, updateTask, toggleTask, deleteTask, restoreTask, reorderVisibleTasks, clearCompleted } = createTaskCrudHandlers({
     getTasks: () => tasksRef.current,
     persist,
     scheduleAutoSync,
     makeLocalId,
     nowISO,
   });
+
+  async function resetLocalData() {
+    await resetAllLocalData();
+    tasksRef.current = [];
+    setTasks([]);
+
+    setLastSync(undefined);
+    setCloudSyncEnabledState(true);
+    setAutoSyncState(false);
+    setCloudStatus('unknown');
+    setLastSyncError(undefined);
+
+    lastSyncRef.current = undefined;
+    cloudSyncEnabledRef.current = true;
+    autoSyncRef.current = false;
+  }
 
   useEffect(() => {
     (async () => {
@@ -95,6 +117,8 @@ export function useTaskManager(): TaskCtx {
         setLastSync(meta.lastSync);
         setCloudSyncEnabledState(meta.cloudSyncEnabled ?? true);
         setAutoSyncState(meta.autoSync ?? false);
+        setCloudStatus(meta.cloudSyncEnabled ?? true ? 'unknown' : 'disabled');
+        setLastSyncError(undefined);
 
         lastSyncRef.current = meta.lastSync;
         cloudSyncEnabledRef.current = meta.cloudSyncEnabled ?? true;
@@ -105,7 +129,7 @@ export function useTaskManager(): TaskCtx {
           await runAutoSyncPushOnly(true);
         }
       } catch (e: any) {
-        Alert.alert('Fejl', e?.message ?? 'Ukendt fejl');
+        Alert.alert('Error', e?.message ?? 'Unknown error');
       } finally {
         setLoading(false);
       }
@@ -126,15 +150,21 @@ export function useTaskManager(): TaskCtx {
     loading,
     syncing,
     isOnline,
+    cloudStatus,
+    lastSyncError,
     lastSync,
     cloudSyncEnabled,
     setCloudSyncEnabled,
     autoSync,
     setAutoSync,
     addTask,
+    updateTask,
     toggleTask,
     deleteTask,
+    restoreTask,
+    reorderVisibleTasks,
     clearCompleted,
+    resetLocalData,
     syncNow,
   };
 }
