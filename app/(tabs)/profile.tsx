@@ -1,12 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { styles } from './screen-styles/profile-screen.styles';
-import { AnimatedPressable } from './ui/animated-pressable';
 import { useTasks } from '../../context/task-context';
 import { loadMeta, saveMeta } from '../../lib/task-storage';
 
@@ -72,10 +71,10 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.label}>Display name</Text>
           <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name..." />
-          <AnimatedPressable style={styles.button} onPress={save}>
+          <Pressable style={styles.button} onPress={save}>
             <Ionicons name="save-outline" size={16} color="#FFFFFF" />
             <Text style={styles.buttonText}>Save Profile</Text>
-          </AnimatedPressable>
+          </Pressable>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(130).duration(380)} style={styles.card}>
@@ -107,10 +106,10 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.meta}>Local tasks: {visibleCount}</Text>
           <Text style={styles.meta}>Pending sync: {pendingCount}</Text>
-          <AnimatedPressable style={[styles.button, styles.dangerButton]} onPress={reset}>
+          <Pressable style={[styles.button, styles.dangerButton]} onPress={reset}>
             <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
             <Text style={styles.buttonText}>Reset Local Data</Text>
-          </AnimatedPressable>
+          </Pressable>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

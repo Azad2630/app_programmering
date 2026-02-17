@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { styles } from './screen-styles/sync-screen.styles';
-import { AnimatedPressable } from './ui/animated-pressable';
 import { useTasks } from '../../context/task-context';
 
 function cloudStatusLabel(status: 'unknown' | 'connected' | 'unavailable' | 'disabled') {
@@ -81,10 +80,10 @@ export default function SyncStatusScreen() {
           <Text style={styles.value}>{stats.syncedVisible}</Text>
         </View>
 
-        <AnimatedPressable style={styles.button} onPress={syncNow} disabled={!isOnline || syncing}>
+        <Pressable style={styles.button} onPress={syncNow} disabled={!isOnline || syncing}>
           <Ionicons name="sync-outline" size={16} color="#FFFFFF" />
           <Text style={styles.buttonText}>{syncing ? 'Syncing...' : 'Sync Now'}</Text>
-        </AnimatedPressable>
+        </Pressable>
 
         {lastSyncError ? <Text style={styles.errorText}>Last error: {lastSyncError}</Text> : null}
 

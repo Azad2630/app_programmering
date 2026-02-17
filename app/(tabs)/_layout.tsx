@@ -1,5 +1,5 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { AppTheme } from './screen-styles/app-theme';
@@ -12,7 +12,7 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: AppTheme.colors.surface },
         headerTitleStyle: { color: AppTheme.colors.text, fontWeight: '700' },
         tabBarStyle: {
-          height: 64,
+          height: 70,
           paddingTop: 6,
           paddingBottom: 8,
           borderTopWidth: 1,

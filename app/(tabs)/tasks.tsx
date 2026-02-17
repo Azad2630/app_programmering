@@ -1,12 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Accelerometer } from 'expo-sensors';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { styles } from './screen-styles/tasks-screen.styles';
-import { AnimatedPressable } from './ui/animated-pressable';
 import { useTasks } from '../../context/task-context';
 import type { LocalTask, TaskPriority } from '../../lib/task-types';
 
@@ -181,12 +180,12 @@ export default function TasksScreen() {
       </TouchableOpacity>
 
       <View style={styles.actionColumn}>
-        <AnimatedPressable style={[styles.iconActionBtn, styles.editBtn]} onPress={() => startEdit(item)}>
+        <Pressable style={[styles.iconActionBtn, styles.editBtn]} onPress={() => startEdit(item)}>
           <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-        </AnimatedPressable>
-        <AnimatedPressable style={[styles.iconActionBtn, styles.deleteBtn]} onPress={() => onDelete(item)}>
+        </Pressable>
+        <Pressable style={[styles.iconActionBtn, styles.deleteBtn]} onPress={() => onDelete(item)}>
           <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
-        </AnimatedPressable>
+        </Pressable>
       </View>
     </Animated.View>
   );
@@ -208,10 +207,10 @@ export default function TasksScreen() {
           onSubmitEditing={submitTask}
           returnKeyType="done"
         />
-        <AnimatedPressable style={styles.addButton} onPress={submitTask}>
+        <Pressable style={styles.addButton} onPress={submitTask}>
           <Ionicons name={editingTaskId ? 'save-outline' : 'add'} size={18} color="#FFFFFF" />
           <Text style={styles.addButtonText}>{editingTaskId ? 'Save' : 'Add'}</Text>
-        </AnimatedPressable>
+        </Pressable>
       </View>
 
       <View style={styles.detailRow}>
@@ -313,10 +312,10 @@ export default function TasksScreen() {
             </Text>
           </View>
         </View>
-        <AnimatedPressable style={styles.syncButton} onPress={syncNow} disabled={!isOnline || syncing}>
+        <Pressable style={styles.syncButton} onPress={syncNow} disabled={!isOnline || syncing}>
           <Ionicons name="sync-outline" size={14} color="#FFFFFF" />
           <Text style={styles.syncButtonText}>{syncing ? 'Syncing...' : 'Sync Now'}</Text>
-        </AnimatedPressable>
+        </Pressable>
       </View>
 
       <Text style={styles.hint}>Tip: shake your phone to clear completed tasks quickly.</Text>
@@ -353,18 +352,18 @@ export default function TasksScreen() {
           contentContainerStyle={styles.listContent}
         />
 
-        <AnimatedPressable style={styles.clearButton} onPress={clearCompleted}>
+        <Pressable style={styles.clearButton} onPress={clearCompleted}>
           <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
           <Text style={styles.clearButtonText}>Clear Completed</Text>
-        </AnimatedPressable>
+        </Pressable>
 
         {undoTask ? (
           <Animated.View entering={FadeInUp.duration(220)} style={styles.undoBar}>
             <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
             <Text style={styles.undoText}>Deleted: {undoTask.title}</Text>
-            <AnimatedPressable style={styles.undoBtn} onPress={onUndoDelete}>
+            <Pressable style={styles.undoBtn} onPress={onUndoDelete}>
               <Text style={styles.undoBtnText}>Undo</Text>
-            </AnimatedPressable>
+            </Pressable>
           </Animated.View>
         ) : null}
       </View>
